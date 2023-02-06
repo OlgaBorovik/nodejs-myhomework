@@ -2,8 +2,11 @@ const { User } = require("../models/user");
 const bcrypt = require("bcrypt");
 const { Unauthorized, Conflict, NotFound } = require("http-errors");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
+const path = require("path");
+const fs = require("fs/promises");
 
-const JWT_SECRET = process.env;
+// const JWT_SECRET = process.env;
 
 async function register(req, res, next) {
   const { email, password } = req.body;
@@ -11,14 +14,17 @@ async function register(req, res, next) {
   const salt = await bcrypt.genSalt();
   const hashedPassword = await bcrypt.hash(password, salt);
   try {
+    const avatarUrl = gravatar.url(email);
     const savedUser = await User.create({
       email,
       password: hashedPassword,
+      avatarUrl,
     });
     console.log(savedUser);
     res.status(201).json({
       user: {
         email,
+        avatarUrl,
       },
     });
   } catch (error) {
@@ -91,10 +97,53 @@ async function updateSubscription(req, res, next) {
   }
   return res.status(200).json(updatedUser);
 }
+
+async function updateAvatar(req, res, next) {
+  console.log(req.file);
+  const { fileName } = req.file;
+  // const tmpPath = path.resolve(__dirname, "../tmp", fileName)
+  const tempPath = req.file.path;
+  const avatarDir = path.resolve(
+    __dirname,
+    "../",
+    "public",
+    "avatars",
+    fileName
+  );
+
+  console.log(tempPath, avatarDir);
+
+  try {
+    await fs.rename(tempPath, avatarDir);
+    const avatarUrl = path.join("public", "avatar", fileName);
+    console.log(avatarUrl);
+    await User.findByIdAndUpdate(req.user._id, { avatarUrl });
+    res.json({ avatarUrl });
+  } catch (error) {
+    await fs.unlink(tempPath);
+    console.log(error.message);
+    throw error;
+  }
+  // const avatarDir = path.join(__dirname, "../", "public", "avatars")
+  // try {
+
+  //   const resultUpload = path.join(avatarDir, originalName)
+  //
+  //   const avatarUrl = path.join("public", "avatar", originalName)
+  //   await User.findByIdAndUpdate(req.user._id, { avatarUrl })
+  //   res.json({avatarUrl})
+  // }
+  // catch (error) {
+  //   await fs.unlink(tempDir)
+  //   throw error;
+  // }
+}
+
 module.exports = {
   register,
   login,
   logout,
   getCurrentUser,
   updateSubscription,
+  updateAvatar,
 };
