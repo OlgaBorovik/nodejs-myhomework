@@ -98,45 +98,25 @@ async function updateSubscription(req, res, next) {
   return res.status(200).json(updatedUser);
 }
 
-async function updateAvatar(req, res, next) {
-  console.log(req.file);
-  const { fileName } = req.file;
-  // const tmpPath = path.resolve(__dirname, "../tmp", fileName)
+async function updateAvatar(req, res) {
+  const { originalname } = req.file;
+  const { _id: id } = req.user;
   const tempPath = req.file.path;
-  const avatarDir = path.resolve(
-    __dirname,
-    "../",
-    "public",
-    "avatars",
-    fileName
-  );
+  const avatarDir = path.join(__dirname, "../", "public", "avatars");
 
-  console.log(tempPath, avatarDir);
+  const imageName = `${id}_${originalname}`;
 
   try {
-    await fs.rename(tempPath, avatarDir);
-    const avatarUrl = path.join("public", "avatar", fileName);
-    console.log(avatarUrl);
+    const resultUpload = path.join(avatarDir, imageName);
+    await fs.rename(tempPath, resultUpload);
+    const avatarUrl = path.join("public", "avatar", imageName);
     await User.findByIdAndUpdate(req.user._id, { avatarUrl });
-    res.json({ avatarUrl });
+    res.status(200).json({ avatarUrl });
   } catch (error) {
     await fs.unlink(tempPath);
     console.log(error.message);
     throw error;
   }
-  // const avatarDir = path.join(__dirname, "../", "public", "avatars")
-  // try {
-
-  //   const resultUpload = path.join(avatarDir, originalName)
-  //
-  //   const avatarUrl = path.join("public", "avatar", originalName)
-  //   await User.findByIdAndUpdate(req.user._id, { avatarUrl })
-  //   res.json({avatarUrl})
-  // }
-  // catch (error) {
-  //   await fs.unlink(tempDir)
-  //   throw error;
-  // }
 }
 
 module.exports = {
