@@ -2,8 +2,12 @@ const { User } = require("../models/user");
 const bcrypt = require("bcrypt");
 const { Unauthorized, Conflict, NotFound } = require("http-errors");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
+const path = require("path");
+const fs = require("fs/promises");
+const Jimp = require("jimp");
 
-const JWT_SECRET = process.env;
+// const JWT_SECRET = process.env;
 
 async function register(req, res, next) {
   const { email, password } = req.body;
@@ -11,14 +15,17 @@ async function register(req, res, next) {
   const salt = await bcrypt.genSalt();
   const hashedPassword = await bcrypt.hash(password, salt);
   try {
+    const avatarUrl = gravatar.url(email);
     const savedUser = await User.create({
       email,
       password: hashedPassword,
+      avatarUrl,
     });
     console.log(savedUser);
     res.status(201).json({
       user: {
         email,
+        avatarUrl,
       },
     });
   } catch (error) {
@@ -91,10 +98,43 @@ async function updateSubscription(req, res, next) {
   }
   return res.status(200).json(updatedUser);
 }
+
+async function updateAvatar(req, res) {
+  const { originalname } = req.file;
+  const { _id: id } = req.user;
+  const tempPath = req.file.path;
+  const avatarDir = path.join(__dirname, "../", "public", "avatars");
+
+  const imageName = `${id}_${originalname}`;
+
+  try {
+    const resultUpload = path.join(avatarDir, imageName);
+    await fs.rename(tempPath, resultUpload);
+    const avatarUrl = path.join("public", "avatars", imageName);
+    console.log("avatarUrl", avatarUrl)
+
+    Jimp.read(avatarUrl)
+      .then((avatar) => {
+        return avatar.resize(250, 250).write(avatarUrl);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    await User.findByIdAndUpdate(req.user._id, { avatarUrl });
+    res.status(200).json({ avatarUrl });
+  } catch (error) {
+    await fs.unlink(tempPath);
+    console.log(error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   register,
   login,
   logout,
   getCurrentUser,
   updateSubscription,
+  updateAvatar,
 };

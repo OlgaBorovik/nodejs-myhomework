@@ -15,8 +15,13 @@ const schema = mongoose.Schema({
     enum: ["starter", "pro", "business"],
     default: "starter"
   },
-  token: String,
+  avatarUrl: {
+    type: String,
   },
+  token: String,
+  
+},
+  
     {
         versionKey: false,
         timestamps: true,
