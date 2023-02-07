@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
 const path = require("path");
 const fs = require("fs/promises");
+const Jimp = require("jimp");
 
 // const JWT_SECRET = process.env;
 
@@ -109,7 +110,17 @@ async function updateAvatar(req, res) {
   try {
     const resultUpload = path.join(avatarDir, imageName);
     await fs.rename(tempPath, resultUpload);
-    const avatarUrl = path.join("public", "avatar", imageName);
+    const avatarUrl = path.join("public", "avatars", imageName);
+    console.log("avatarUrl", avatarUrl)
+
+    Jimp.read(avatarUrl)
+      .then((avatar) => {
+        return avatar.resize(250, 250).write(avatarUrl);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
     await User.findByIdAndUpdate(req.user._id, { avatarUrl });
     res.status(200).json({ avatarUrl });
   } catch (error) {
