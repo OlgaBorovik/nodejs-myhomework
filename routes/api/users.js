@@ -6,6 +6,8 @@ const {
   logout,
   updateSubscription,
   updateAvatar,
+  verifyEmail,
+  resendVerifyEmail,
 } = require("../../controllers/users.controller");
 const { auth } = require("../../middlewares/validation");
 const { upload } = require("../../middlewares/upload");
@@ -23,6 +25,8 @@ usersRouter.patch(
   upload.single("avatar"),
   tryCatchWrapper(updateAvatar)
 );
+usersRouter.get("/verify/:verificationToken", tryCatchWrapper(verifyEmail));
+usersRouter.post("/verify", tryCatchWrapper(resendVerifyEmail))
 
 module.exports = {
   usersRouter,
